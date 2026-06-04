@@ -4,6 +4,7 @@ from .reconstruction import ReconstructionTask
 from .segmentation import SegmentationTask
 from .semantic_segmentation import SemanticSegmentationTask
 from .pretraining import PretrainingTask
+from .classification import ClassificationTask
 
 
 task_lookup = {
@@ -13,6 +14,7 @@ task_lookup = {
     "segmentation": SegmentationTask,
     "semantic_segmentation": SemanticSegmentationTask,
     "pretraining": PretrainingTask,
+    "classification": ClassificationTask,
 }
 
 def get_trainer(run_id, config):
