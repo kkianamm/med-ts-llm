@@ -23,7 +23,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class MedTsLLM(nn.Module):
 
-    supported_tasks = ["forecasting", "reconstruction", "anomaly_detection", "semantic_segmentation", "segmentation", "pretraining"]
+    supported_tasks = ["forecasting", "reconstruction", "anomaly_detection", "semantic_segmentation", "segmentation", "classification", "pretraining"]
     supported_modes = ["univariate", "multivariate"]
 
     def __init__(self, config, dataset):
@@ -64,9 +64,17 @@ class MedTsLLM(nn.Module):
         elif self.task == "segmentation":
             self.n_outputs_per_step = 1
             assert self.config.tasks.segmentation.mode in ["boundary-prediction", "steps-to-boundary"]
+        elif self.task == "classification":
+            # Sequence-level: a single label per window over K classes.
+            self.n_outputs_per_step = self.n_classes if self.n_classes > 2 else 1
         else:
             raise ValueError(f"Task {self.task} is not supported.")
-        self.n_outputs = self.n_outputs_per_step * self.pred_len
+
+        if self.task == "classification":
+            # Classification yields one sequence-level prediction (not per time step).
+            self.n_outputs = self.n_outputs_per_step
+        else:
+            self.n_outputs = self.n_outputs_per_step * self.pred_len
 
         match self.covariate_mode:
             case "univariate":
@@ -254,6 +262,11 @@ class MedTsLLM(nn.Module):
                     pred = F.softmax(pred, dim=-1)
                 else:
                     pred = F.sigmoid(pred)
+            elif self.task == "classification":
+                if self.n_classes > 2:
+                    pred = F.softmax(pred, dim=-1)
+                else:
+                    pred = F.sigmoid(pred)
             elif self.task == "segmentation":
                 if self.config.tasks.segmentation.mode == "boundary-prediction":
                     pred = F.sigmoid(pred)
@@ -364,7 +377,21 @@ class MedTsLLM(nn.Module):
 
         # dec_out = dec_out[:, -self.n_patches:, :self.d_ff]
         dec_out = dec_out.permute(0, 2, 1).contiguous() # [bs, d_ff, n_patches]
-        dec_out = self.output_projection(dec_out)       # [bs, pred_len * n_features]
+        dec_out = self.output_projection(dec_out)       # [bs, n_outputs] (= [bs, pred_len*n_features] for non-classification)
+
+        if self.task == "classification":
+            # dec_out is [bs, n_outputs_per_step], or [bs*n_features, n_outputs_per_step]
+            # for the "independent"/"merge-end" covariate strategies. Collapse to [bs, K].
+            if self.covariate_mode == "independent":
+                dec_out = dec_out.view(bs, self.n_features, self.n_outputs_per_step).mean(dim=1)
+            elif self.covariate_mode == "merge-end":
+                dec_out = dec_out.view(bs, self.n_features * self.n_outputs_per_step)
+                dec_out = self.feature_weighting(dec_out)
+            else:
+                dec_out = dec_out.view(bs, self.n_outputs_per_step)
+            if self.n_outputs_per_step == 1:
+                dec_out = dec_out.squeeze(-1)
+            return dec_out
 
         if self.covariate_mode == "independent":
             dec_out = dec_out.view(bs, self.n_features, self.pred_len, self.n_outputs_per_step)
@@ -507,6 +534,8 @@ class MedTsLLM(nn.Module):
             self.task_description = f"Classify the past {self.seq_len} steps of data as accurately as possible using the following information."
         elif self.task == "segmentation":
             self.task_description = f"Identify the change points in the past {self.seq_len} steps of data to segment the sequence."
+        elif self.task == "classification":
+            self.task_description = f"Classify the entire {self.seq_len}-step sequence into one of {dataset.n_classes} diagnostic categories."
         else:
             raise ValueError(f"Task {self.task} is not supported.")
 
