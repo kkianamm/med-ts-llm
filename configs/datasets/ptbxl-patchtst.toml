@@ -1,0 +1,53 @@
+DEBUG = false
+
+task = "classification"
+model = "patchtst"
+
+# PatchTST asserts pred_len == history_len for non-forecasting tasks.
+history_len = 512
+pred_len = 512
+
+
+[data]
+dataset = "PTB-XL"
+mode = "multivariate"
+cols = "all"
+normalize = true
+step = 512
+
+
+[training]
+epochs = 20
+batch_size = 16
+optimizer = "adam"
+learning_rate = 1e-4
+dropout = 0.2
+loss = "ce"
+
+eval_metric = "accuracy"
+eval_metric_direction = "max"
+
+
+[datasets.PTB-XL]
+version = "v1"
+
+
+[models.patchtst]
+# PatchTST requires independent covariate handling (per-lead patching).
+covariate_mode = "independent"
+d_model = 128
+n_heads = 16
+d_ff = 256
+e_layers = 3
+
+[models.patchtst.patching]
+patch_len = 16
+stride = 8
+
+
+[setup]
+seed = 0
+device = "auto"
+dtype = "mixed"
+num_workers = "auto"
+logger = "print"
