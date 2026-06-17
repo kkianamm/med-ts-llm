@@ -5,6 +5,7 @@ from .dlinear import DLinear
 from .FEDformer import FEDformer
 from .PatchTST import PatchTST
 from .TimesNet import TimesNet
+from .biomedcoop_ts import BiomedCoOpTS
 
 
 model_lookup = {
@@ -15,4 +16,5 @@ model_lookup = {
     "fedformer": FEDformer,
     "patchtst": PatchTST,
     "timesnet": TimesNet,
+    "biomedcoop_ts": BiomedCoOpTS,
 }
