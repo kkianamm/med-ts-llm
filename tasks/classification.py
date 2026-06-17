@@ -48,7 +48,8 @@ class ClassificationTask(BaseTask):
                 self.log_step(loss.item())
 
             val_scores = self.val()
-            self.log_epoch(val_scores)
+            test_scores = self.test()
+            self.log_epoch({**val_scores, **test_scores})
             self.scheduler.step()
 
         self.model.eval()
