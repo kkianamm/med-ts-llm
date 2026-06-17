@@ -57,6 +57,20 @@ class MedTsLLM(nn.Module):
 
         self.n_classes = dataset.n_classes if self.task in ["classification", "semantic_segmentation"] else 0
 
+        # --- BiomedCoOp-style class-description prompting (optional) ---
+        self.class_descriptions = None
+        _pcfg = self.model_config.get("prompting")
+        if _pcfg is not None and _pcfg.get("class_prompts", False) and self.task == "classification":
+            from .biomedcoop_ts import load_class_prompts
+            _name_map = {"NORM": "Normal ECG", "MI": "Myocardial Infarction",
+                         "STTC": "ST/T Change", "CD": "Conduction Disturbance",
+                         "HYP": "Hypertrophy"}
+            self.class_codes = _pcfg.get("class_codes", list(_name_map.keys()))
+            self.class_names = _pcfg.get("class_names", None) or [_name_map.get(c, c) for c in self.class_codes]
+            self.class_descriptions = load_class_prompts(_pcfg.class_prompts_path, self.class_codes)
+            self.class_prompts_k = _pcfg.get("class_prompts_per_class", 3)
+            self.class_prompts_sample = _pcfg.get("class_prompts_sample", True)
+
         if self.task in ["forecasting", "reconstruction", "anomaly_detection", "pretraining"]:
             self.n_outputs_per_step = self.n_features
         elif self.task == "semantic_segmentation":
@@ -410,6 +424,19 @@ class MedTsLLM(nn.Module):
 
         return dec_out
 
+    def build_class_prompt(self):
+        import random
+        parts = []
+        for i, (name, descs) in enumerate(zip(self.class_names, self.class_descriptions)):
+            k = min(self.class_prompts_k, len(descs))
+            if self.class_prompts_sample and self.training:
+                chosen = random.sample(descs, k)
+            else:
+                chosen = descs[:k]
+            feats = " ".join(d.strip().rstrip(".") + "." for d in chosen)
+            parts.append(f"({i+1}) {name}: {feats}")
+        return "Diagnostic categories and their characteristic ECG features: " + " ".join(parts)
+
     def build_prompt(self, inputs):
         bs = inputs["x_enc"].size(0)
 
@@ -446,6 +473,11 @@ class MedTsLLM(nn.Module):
         else:
             task_prompt = ""
 
+        if cfg.get("class_prompts", False) and self.class_descriptions is not None:
+            class_prompt = self.build_class_prompt()
+        else:
+            class_prompt = ""
+
         bos = self.tokenizer.bos_token if self.tokenizer.bos_token is not None else ""
 
         prompts = []
@@ -453,6 +485,7 @@ class MedTsLLM(nn.Module):
             parts = [
                 bos,
                 dataset_prompt,
+                class_prompt,
                 *example_prompts[b],
                 clip_prompts[b],
                 input_stats_prompts[b],
