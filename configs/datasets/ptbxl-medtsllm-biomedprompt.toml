@@ -1,0 +1,76 @@
+DEBUG = false
+
+task = "classification"
+model = "medtsllm"
+
+history_len = 512
+pred_len = 512
+
+
+[data]
+dataset = "PTB-XL"
+mode = "multivariate"
+cols = "all"
+normalize = true
+step = 512
+
+
+[training]
+epochs = 20
+batch_size = 16
+optimizer = "adam"
+learning_rate = 1e-4
+dropout = 0.1
+loss = "ce"
+
+eval_metric = "accuracy"
+eval_metric_direction = "max"
+
+
+[datasets.PTB-XL]
+version = "v1"
+
+
+[models.medtsllm]
+d_model = 32
+d_ff = 128
+n_heads = 8
+num_tokens = 1024
+covariate_mode = "concat"
+embedding_downsample_mode = "linear"
+
+[models.medtsllm.patching]
+patch_len = 32
+stride = 16
+
+[models.medtsllm.prompting]
+input_stats_dim = 0
+input_stats_select = "all"
+dataset = true
+task = true
+clip = true
+input_stats = false
+examples = false
+# --- BiomedCoOp prompt strategy: inject LLM-generated class descriptions ---
+class_prompts = true
+class_prompts_path = "prompts/ptbxl_prompts.json"
+class_codes = ["NORM", "MI", "STTC", "CD", "HYP"]
+class_prompts_per_class = 3          # how many descriptions/class to inject
+class_prompts_sample = true          # resample each train step (augmentation); fixed first-k at eval
+
+[models.medtsllm.llm]
+enabled = true
+# decoder-only (your working memory setup). Switch to google/flan-t5-xl for the
+# encoder-decoder variant the paper found best for classification.
+llm = "meta-llama/Llama-2-7b-hf"
+load_in_4bit = true
+load_in_8bit = false
+llm_layers = -1
+
+
+[setup]
+seed = 0
+device = "auto"
+dtype = "mixed"
+num_workers = "auto"
+logger = "print"
