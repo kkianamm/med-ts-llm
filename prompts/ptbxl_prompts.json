@@ -1,0 +1,37 @@
+{
+  "NORM": [
+    "Normal sinus rhythm with regular R-R intervals and a physiologic rate.",
+    "Upright P wave preceding every QRS with a normal PR interval.",
+    "Narrow QRS complexes with normal R-wave progression across precordial leads.",
+    "No pathological Q waves and no significant ST-segment deviation.",
+    "Normal T-wave orientation and a normal frontal-plane QRS axis."
+  ],
+  "MI": [
+    "Pathological Q waves or QS complexes in contiguous leads.",
+    "Localized ST-segment elevation indicating acute injury.",
+    "Poor R-wave progression with loss of anterior forces.",
+    "T-wave inversion in the territory of the affected coronary artery.",
+    "Reciprocal ST-segment changes in opposite leads."
+  ],
+  "STTC": [
+    "ST-segment depression without a clear infarction pattern.",
+    "Flattened or inverted T waves suggesting repolarization abnormality.",
+    "Biphasic T waves and nonspecific ST-T changes.",
+    "Ischemic-like repolarization changes across multiple leads.",
+    "Abnormal T-wave axis with lead-specific ST-T deviation."
+  ],
+  "CD": [
+    "Prolonged QRS duration consistent with a conduction delay.",
+    "Right bundle branch block morphology with rSR' in V1.",
+    "Left bundle branch block morphology with broad notched R waves.",
+    "Prolonged PR interval indicating atrioventricular conduction delay.",
+    "Fascicular block with associated frontal-plane axis deviation."
+  ],
+  "HYP": [
+    "Increased QRS voltage meeting left ventricular hypertrophy criteria.",
+    "Tall R waves in lateral leads with deep S waves in the right precordium.",
+    "Repolarization strain pattern with ST-T changes opposite the QRS.",
+    "Left atrial abnormality with a broad notched P wave.",
+    "Right ventricular hypertrophy pattern with right axis deviation."
+  ]
+}
