@@ -1,0 +1,67 @@
+DEBUG = false
+
+task = "classification"
+model = "biomedcoop_ts"
+
+history_len = 512
+pred_len = 512
+
+
+[data]
+dataset = "PTB-XL"
+mode = "multivariate"
+cols = "all"
+normalize = true
+step = 512
+
+
+[training]
+epochs = 20
+batch_size = 16
+optimizer = "adam"
+learning_rate = 1e-4
+dropout = 0.2
+loss = "ce"
+
+eval_metric = "accuracy"
+eval_metric_direction = "max"
+
+
+[datasets.PTB-XL]
+version = "v1"
+
+
+[models.biomedcoop_ts]
+# --- LLM prompt ensemble ---
+# Path to the class descriptions you generated. Can be a single combined JSON,
+# a JSON list of {class_code, prompts} objects, or a directory of per-class files.
+prompts_path = "prompts/ptbxl_prompts.json"
+# Order MUST match the dataset label indices (PTB-XL: NORM=0, MI=1, STTC=2, CD=3, HYP=4).
+class_codes = ["NORM", "MI", "STTC", "CD", "HYP"]
+# Frozen text encoder. PubMedBERT mirrors BiomedCLIP's text tower; swap for a
+# general one (e.g. sentence-transformers/all-MiniLM-L6-v2) if you prefer lighter.
+text_model = "neuml/pubmedbert-base-embeddings"
+
+# --- BiomedCoOp loss weights ---
+lambda_sccm = 1.0          # weight of the SCCM (prototype<->LLM ensemble) MSE term
+lambda_kdsp = 1.0          # weight of the KDSP (KL distillation) term
+z_threshold = 1.25         # ζs: MAD modified-z-score cutoff for outlier prompt pruning
+learnable_prototypes = true
+
+# --- time-series encoder ---
+d_model = 128
+n_heads = 16
+d_ff = 256
+e_layers = 3
+
+[models.biomedcoop_ts.patching]
+patch_len = 16
+stride = 8
+
+
+[setup]
+seed = 0
+device = "auto"
+dtype = "mixed"
+num_workers = "auto"
+logger = "print"
