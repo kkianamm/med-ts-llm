@@ -17,7 +17,7 @@ step = 512
 
 [training]
 epochs = 20
-batch_size = 16
+batch_size = 4
 optimizer = "adam"
 learning_rate = 1e-4
 dropout = 0.1
